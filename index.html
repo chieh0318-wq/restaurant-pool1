@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>餐廳 Pool</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; padding: 16px; }
+.container { max-width: 640px; margin: 0 auto; }
+.top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 8px; }
+.title { font-size: 20px; font-weight: 600; }
+.stats { display: flex; gap: 6px; flex-wrap: wrap; }
+.badge { font-size: 12px; padding: 4px 10px; border-radius: 20px; }
+.badge-total { background: #e8e8e8; color: #555; }
+.badge-visited { background: #d4edda; color: #2d6a3f; }
+.badge-picked { background: #cce5ff; color: #1a5fa8; }
+.sync-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.sync-status { font-size: 12px; color: #888; flex: 1; }
+.sync-status.ok { color: #2d6a3f; }
+.sync-status.err { color: #c0392b; }
+.sync-status.loading { color: #888; }
+.sync-btn { font-size: 12px; padding: 5px 12px; border-radius: 8px; border: 1px solid #ddd; background: #fff; cursor: pointer; color: #555; }
+.sync-btn:hover { background: #f0f0f0; }
+.card-box { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; }
+.section-title { font-size: 12px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+.form-grid { display: flex; flex-direction: column; gap: 8px; }
+.form-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.form-row input, .form-row select {
+  flex: 1; min-width: 100px; font-size: 14px;
+  border: 1px solid #ddd; border-radius: 8px; padding: 8px 10px;
+  background: #fafafa; outline: none;
+}
+.form-row input:focus, .form-row select:focus { border-color: #378ADD; background: #fff; }
+.inp-map {
+  width: 100%; font-size: 14px;
+  border: 1px solid #ddd; border-radius: 8px; padding: 8px 10px;
+  background: #fafafa; outline: none;
+}
+.inp-map:focus { border-color: #378ADD; background: #fff; }
+.inp-map.has-link { border-color: #a3d9b6; background: #f6fff9; color: #2d6a3f; }
+.add-btn {
+  width: 100%; font-size: 14px; padding: 9px;
+  border: none; border-radius: 8px; background: #378ADD; color: #fff;
+  cursor: pointer; font-weight: 500; margin-top: 2px;
+}
+.add-btn:hover { background: #185FA5; }
+.add-btn:disabled { background: #aaa; cursor: not-allowed; }
+.filter-bar { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.filter-btn {
+  font-size: 13px; padding: 5px 12px; border-radius: 20px;
+  border: 1px solid #ddd; background: transparent; cursor: pointer; color: #666;
+  transition: all 0.15s;
+}
+.filter-btn.active { background: #cce5ff; color: #1a5fa8; border-color: #9ecfff; font-weight: 600; }
+.restaurant-card {
+  background: #fff; border: 1px solid #e0e0e0; border-radius: 12px;
+  padding: 12px 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px;
+  transition: border-color 0.15s;
+}
+.restaurant-card:hover { border-color: #bbb; }
+.restaurant-card.visited { opacity: 0.55; }
+.restaurant-card.picked { border: 2px solid #378ADD; background: #f0f8ff; }
+.card-info { flex: 1; min-width: 0; }
+.card-name-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.card-name { font-size: 15px; font-weight: 600; color: #1a1a1a; }
+.map-link {
+  font-size: 11px; padding: 2px 8px; border-radius: 4px;
+  background: #e8f4ff; color: #185FA5; text-decoration: none; font-weight: 600;
+  white-space: nowrap; flex-shrink: 0; border: 1px solid #b5d4f4;
+}
+.map-link:hover { background: #cce5ff; }
+.card-meta { font-size: 12px; color: #888; margin-top: 4px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.tag { font-size: 11px; padding: 2px 7px; border-radius: 4px; font-weight: 600; }
+.tag-area { background: #f0f0f0; color: #555; }
+.tag-type { background: #fff3cd; color: #7d5500; }
+.tag-visited { background: #d4edda; color: #2d6a3f; }
+.tag-picked { background: #cce5ff; color: #1a5fa8; }
+.card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.icon-btn {
+  width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e0e0e0;
+  background: transparent; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; font-size: 15px; transition: background 0.1s; color: #666;
+}
+.icon-btn:hover { background: #f0f0f0; }
+.icon-btn.v-active { background: #d4edda; border-color: #a3d9b6; color: #2d6a3f; }
+.icon-btn.p-active { background: #cce5ff; border-color: #9ecfff; color: #1a5fa8; }
+.icon-btn.del:hover { background: #fde8e8; color: #c0392b; border-color: #f5a5a5; }
+.icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.empty { text-align: center; padding: 2.5rem 1rem; color: #aaa; font-size: 14px; }
+.picked-highlight { background: #e8f4ff; border: 1.5px solid #9ecfff; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; }
+.picked-label { font-size: 12px; color: #378ADD; font-weight: 600; margin-bottom: 4px; }
+.picked-name { font-size: 22px; font-weight: 700; color: #0C447C; }
+.picked-sub { font-size: 13px; color: #378ADD; margin-top: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.picked-map-link {
+  font-size: 12px; padding: 4px 12px; border-radius: 6px;
+  background: #378ADD; color: #fff; text-decoration: none; font-weight: 600;
+}
+.picked-map-link:hover { background: #185FA5; }
+.random-btn {
+  width: 100%; font-size: 14px; padding: 10px; border-radius: 10px;
+  border: 1.5px dashed #bbb; background: transparent; cursor: pointer; color: #555;
+  margin-bottom: 16px; transition: all 0.15s;
+}
+.random-btn:hover { border-color: #378ADD; color: #378ADD; background: #f0f8ff; }
+.loading-overlay { text-align: center; padding: 3rem 1rem; color: #aaa; font-size: 15px; }
+.spinner {
+  display: inline-block; width: 18px; height: 18px;
+  border: 2px solid #e0e0e0; border-top-color: #378ADD;
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+  margin-right: 6px; vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="top-bar">
+    <span class="title">🍽 餐廳 Pool</span>
+    <div class="stats">
+      <span class="badge badge-total" id="stat-total">共 0 間</span>
+      <span class="badge badge-visited" id="stat-visited">去過 0</span>
+      <span class="badge badge-picked" id="stat-picked">選中 0</span>
+    </div>
+  </div>
+
+  <div class="sync-bar">
+    <span class="sync-status loading" id="sync-status"><span class="spinner"></span>連線中...</span>
+    <button class="sync-btn" onclick="loadFromSheets()">↻ 重新整理</button>
+  </div>
+
+  <div id="picked-area"></div>
+
+  <div class="card-box" style="margin-bottom:16px;">
+    <div class="section-title">新增餐廳</div>
+    <div class="form-grid">
+      <div class="form-row">
+        <input type="text" id="inp-name" placeholder="餐廳名稱 *" onkeydown="if(event.key==='Enter')addRestaurant()" />
+        <input type="text" id="inp-area" placeholder="地區（選填）" style="max-width:110px;" />
+        <select id="inp-type">
+          <option value="">類型</option>
+          <option>日式</option><option>義式</option><option>中式</option>
+          <option>台式</option><option>韓式</option><option>美式</option>
+          <option>泰式</option><option>火鍋</option><option>燒肉</option><option>其他</option>
+        </select>
+      </div>
+      <input type="text" class="inp-map" id="inp-map"
+        placeholder="🗺 貼上 Google Maps 連結（選填）"
+        oninput="onMapInput(this)" />
+      <button class="add-btn" id="add-btn" onclick="addRestaurant()">+ 新增餐廳</button>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">全部</button>
+    <button class="filter-btn" data-filter="unvisited" onclick="setFilter('unvisited',this)">還沒去</button>
+    <button class="filter-btn" data-filter="visited" onclick="setFilter('visited',this)">去過了</button>
+    <button class="filter-btn" data-filter="picked" onclick="setFilter('picked',this)">本月選中</button>
+  </div>
+
+  <button class="random-btn" onclick="randomPick()">🎲 幫太太隨機選一間（未去過）</button>
+
+  <div id="list"><div class="loading-overlay"><span class="spinner"></span>載入中...</div></div>
+</div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbzdjfxJ5ZIHRAJjP4Z2yIA_G3yJWi-d2uYZ1pL9OpeAj4W2icdXkMXBYD_RoWPEfoGF/exec';
+
+let restaurants = [];
+let currentFilter = 'all';
+let isSaving = false;
+
+function onMapInput(el) {
+  const val = el.value.trim();
+  const isLink = val.startsWith('http') && (val.includes('google') || val.includes('goo.gl'));
+  el.classList.toggle('has-link', isLink && val.length > 0);
+}
+
+function setSyncStatus(type, msg) {
+  const el = document.getElementById('sync-status');
+  el.className = 'sync-status ' + type;
+  el.innerHTML = type === 'loading' ? `<span class="spinner"></span>${msg}` : msg;
+}
+
+async function loadFromSheets() {
+  setSyncStatus('loading', '載入中...');
+  document.getElementById('list').innerHTML = '<div class="loading-overlay"><span class="spinner"></span>載入中...</div>';
+  try {
+    const res = await fetch(API_URL + '?action=getAll');
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    restaurants = data.restaurants || [];
+    const now = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+    setSyncStatus('ok', `✓ 已同步 Google Sheets（${now}）`);
+  } catch(e) {
+    setSyncStatus('err', '⚠ 無法連線，請確認 Apps Script 已部署');
+    restaurants = [];
+  }
+  render();
+}
+
+async function saveToSheets() {
+  if (isSaving) return;
+  isSaving = true;
+  setSyncStatus('loading', '儲存中...');
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'save', data: restaurants })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    const now = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+    setSyncStatus('ok', `✓ 已儲存至 Google Sheets（${now}）`);
+  } catch(e) {
+    setSyncStatus('err', '⚠ 儲存失敗，請重試');
+  }
+  isSaving = false;
+}
+
+function addRestaurant() {
+  const name = document.getElementById('inp-name').value.trim();
+  if (!name) { document.getElementById('inp-name').focus(); return; }
+  const area = document.getElementById('inp-area').value.trim();
+  const type = document.getElementById('inp-type').value;
+  const mapUrl = document.getElementById('inp-map').value.trim();
+  restaurants.unshift({ id: Date.now(), name, area, type, mapUrl, visited: false, picked: false });
+  document.getElementById('inp-name').value = '';
+  document.getElementById('inp-area').value = '';
+  document.getElementById('inp-type').value = '';
+  document.getElementById('inp-map').value = '';
+  document.getElementById('inp-map').classList.remove('has-link');
+  render();
+  saveToSheets();
+  document.getElementById('inp-name').focus();
+}
+
+function toggleVisited(id) {
+  const r = restaurants.find(x => x.id == id);
+  if (r) { r.visited = !r.visited; if (r.visited) r.picked = false; }
+  render(); saveToSheets();
+}
+
+function togglePicked(id) {
+  const r = restaurants.find(x => x.id == id);
+  if (r) r.picked = !r.picked;
+  render(); saveToSheets();
+}
+
+function deleteRestaurant(id) {
+  if (!confirm('確定刪除這間餐廳？')) return;
+  restaurants = restaurants.filter(x => x.id != id);
+  render(); saveToSheets();
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function randomPick() {
+  const pool = restaurants.filter(x => !x.visited);
+  if (!pool.length) { alert('沒有未去過的餐廳囉！快來新增幾間吧 😊'); return; }
+  restaurants.forEach(x => x.picked = false);
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  pick.picked = true;
+  currentFilter = 'all';
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('[data-filter="all"]').classList.add('active');
+  render(); saveToSheets();
+  setTimeout(() => {
+    const el = document.querySelector('.restaurant-card.picked');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 100);
+}
+
+function render() {
+  const total = restaurants.length;
+  const visited = restaurants.filter(x => x.visited).length;
+  const picked = restaurants.filter(x => x.picked).length;
+  document.getElementById('stat-total').textContent = `共 ${total} 間`;
+  document.getElementById('stat-visited').textContent = `去過 ${visited}`;
+  document.getElementById('stat-picked').textContent = `選中 ${picked}`;
+
+  const pickedList = restaurants.filter(x => x.picked);
+  document.getElementById('picked-area').innerHTML = pickedList.map(p => `
+    <div class="picked-highlight">
+      <div class="picked-label">✨ 本月選中</div>
+      <div class="picked-name">${p.name}</div>
+      <div class="picked-sub">
+        <span>${[p.area, p.type].filter(Boolean).join(' · ')}</span>
+        ${p.mapUrl ? `<a class="picked-map-link" href="${p.mapUrl}" target="_blank">📍 Google Maps 導航</a>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  let list = restaurants;
+  if (currentFilter === 'unvisited') list = list.filter(x => !x.visited);
+  else if (currentFilter === 'visited') list = list.filter(x => x.visited);
+  else if (currentFilter === 'picked') list = list.filter(x => x.picked);
+
+  const container = document.getElementById('list');
+  if (!list.length) {
+    container.innerHTML = `<div class="empty">這個篩選條件下沒有餐廳</div>`;
+    return;
+  }
+  container.innerHTML = list.map(r => `
+    <div class="restaurant-card ${r.visited ? 'visited' : ''} ${r.picked ? 'picked' : ''}">
+      <div class="card-info">
+        <div class="card-name-row">
+          <span class="card-name">${r.name}</span>
+          ${r.mapUrl ? `<a class="map-link" href="${r.mapUrl}" target="_blank">📍 導航</a>` : ''}
+        </div>
+        <div class="card-meta">
+          ${r.area ? `<span class="tag tag-area">${r.area}</span>` : ''}
+          ${r.type ? `<span class="tag tag-type">${r.type}</span>` : ''}
+          ${r.visited ? `<span class="tag tag-visited">✓ 去過</span>` : ''}
+          ${r.picked ? `<span class="tag tag-picked">★ 本月</span>` : ''}
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="icon-btn ${r.visited ? 'v-active' : ''}" title="${r.visited ? '取消去過' : '標記去過'}" onclick="toggleVisited(${r.id})">✓</button>
+        <button class="icon-btn ${r.picked ? 'p-active' : ''}" title="${r.picked ? '取消選中' : '標記本月'}" onclick="togglePicked(${r.id})" ${r.visited ? 'disabled' : ''}>★</button>
+        <button class="icon-btn del" title="刪除" onclick="deleteRestaurant(${r.id})">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+loadFromSheets();
+</script>
+</body>
+</html>
